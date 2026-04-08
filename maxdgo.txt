@@ -1,0 +1,28 @@
+# =============================================
+# Split Tunnel - HBO Max + DGO Argentina
+# Actualizado: Abril 2026
+# =============================================
+
+# === DOMINIOS ===
+*.max.com
+*.hbomax.com
+*.hbo.com
+*.discomax.com
+*.directvgo.com
+*.dgo.com
+*.any-latam.prd.api.discomax.com
+*.prd.api.discomax.com
+*.brightcove.com
+*.amazonaws.com
+*.cloudfront.net
+
+# === IPs CIDR (AWS principales) ===
+3.32.0.0/12
+15.197.0.0/16
+44.220.0.0/15
+99.83.232.0/21
+3.208.0.0/12
+13.32.0.0/15
+18.232.0.0/14
+34.192.0.0/11
+52.94.0.0/18
