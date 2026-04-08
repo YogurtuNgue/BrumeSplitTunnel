@@ -2,8 +2,8 @@ name: Update Max + DGO Split Tunnel List
 
 on:
   schedule:
-    - cron: '0 6 * * *'      # Todos los días a las 6:00 UTC (3:00 Argentina)
-  workflow_dispatch:         # Permite ejecutar manualmente
+    - cron: '0 6 * * *'        # Se ejecuta todos los días a las 6:00 UTC (3:00 Argentina)
+  workflow_dispatch:           # Permite ejecutarlo manualmente
 
 jobs:
   update-list:
@@ -13,16 +13,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq curl
-
-      - name: Download latest AWS IP ranges and generate list
+      - name: Generate updated split tunnel list
         run: |
           curl -s https://ip-ranges.amazonaws.com/ip-ranges.json -o ip-ranges.json
 
-          cat > maxdgo.txt << EOF
+          cat > maxdgo.txt << 'EOF'
           # =============================================
           # Split Tunnel - HBO Max + DGO Argentina
           # Actualizado automáticamente: $(date -u +"%Y-%m-%d %H:%M UTC")
@@ -42,17 +37,21 @@ jobs:
           *.amazonaws.com
           *.cloudfront.net
 
-          # === IPs CIDR (AWS CloudFront + Global Accelerator - actualizados automáticamente) ===
+          # === IPs CIDR - AWS CloudFront + Global Accelerator (actualizado automáticamente) ===
           EOF
 
-          # Extraer rangos relevantes de AWS
-          jq -r '.prefixes[] | select(.service == "CLOUDFRONT" or .service == "AMAZON") | .ip_prefix' ip-ranges.json | \
+          # Extraer solo rangos relevantes (CloudFront y AMAZON global)
+          jq -r '.prefixes[] | select(.service == "CLOUDFRONT" or (.service == "AMAZON" and .region == "GLOBAL")) | .ip_prefix' ip-ranges.json | \
           sort -V | uniq >> maxdgo.txt
 
-      - name: Commit and push changes
+      - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add maxdgo.txt
-          git commit -m "Auto-update: AWS IP ranges $(date -u +'%Y-%m-%d')" || echo "No changes to commit"
-          git push
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-update: AWS IP ranges $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
