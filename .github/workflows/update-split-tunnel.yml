@@ -1,0 +1,58 @@
+name: Update Max + DGO Split Tunnel List
+
+on:
+  schedule:
+    - cron: '0 6 * * *'      # Todos los días a las 6:00 UTC (3:00 Argentina)
+  workflow_dispatch:         # Permite ejecutar manualmente
+
+jobs:
+  update-list:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl
+
+      - name: Download latest AWS IP ranges and generate list
+        run: |
+          curl -s https://ip-ranges.amazonaws.com/ip-ranges.json -o ip-ranges.json
+
+          cat > maxdgo.txt << EOF
+          # =============================================
+          # Split Tunnel - HBO Max + DGO Argentina
+          # Actualizado automáticamente: $(date -u +"%Y-%m-%d %H:%M UTC")
+          # =============================================
+
+          # === DOMINIOS (fijos) ===
+          *.max.com
+          *.hbomax.com
+          *.hbo.com
+          *.discomax.com
+          *.directvgo.com
+          *.dgo.com
+          *.any-latam.prd.api.discomax.com
+          *.prd.api.discomax.com
+          *.beam-latam.prd.api.discomax.com
+          *.brightcove.com
+          *.amazonaws.com
+          *.cloudfront.net
+
+          # === IPs CIDR (AWS CloudFront + Global Accelerator - actualizados automáticamente) ===
+          EOF
+
+          # Extraer rangos relevantes de AWS
+          jq -r '.prefixes[] | select(.service == "CLOUDFRONT" or .service == "AMAZON") | .ip_prefix' ip-ranges.json | \
+          sort -V | uniq >> maxdgo.txt
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add maxdgo.txt
+          git commit -m "Auto-update: AWS IP ranges $(date -u +'%Y-%m-%d')" || echo "No changes to commit"
+          git push
